@@ -1,0 +1,13 @@
+{
+  "name": "DaraRepo",
+  "version": "1.0.0",
+  "scope": "darabonba",
+  "main": "./main.dara",
+  "libraries": {
+    "Util": "alibabacloud:Util:*",
+    "FileForm": "alibabacloud:FileForm:*"
+  },
+  "releases": {
+    "ts": "@darabonba/repo-client:^1"
+  }
+}

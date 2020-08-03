@@ -1,0 +1,344 @@
+import Util;
+import FileForm;
+
+type @auth = string
+type @endpoint_host = string
+type @protocol = string
+
+/**
+ * object about user operation
+ */
+model UserObject {
+  username: string(description='username', name='username'),
+  password: string(description='password', name='password'),
+  email: string(description='email', name='email')
+}
+
+/**
+ * object about module download operation
+ */
+model DownloadModuleObject {
+  specs: string(description='specs list ,eg.<scope/moduleName/version,scope/moduleName/version>', name='specs')
+}
+
+/**
+ * object about module publish operation
+ */
+model PublishModuleObject {
+  author: string(description='author', name='author'),
+  name: string(description='name', name='name'),
+  version: string(description='version', name='version'),
+  scope: string(description='scope', name='scope'),
+  darafile: string(description='darafile', name='darafile'),
+  dara_ast: string(description='tea ast', name='dara_ast'),
+  readme: string(description='readme', name='readme'),
+  size: number(description='size', name='size'),
+  file: FileForm.FileField
+}
+
+/**
+ * object about module maintainer operation
+ */
+model GetModuleObjectMaintainersObject {
+  scope: string(description='scope', name='scope'),
+  name: string(description='name', name='name')
+}
+
+/**
+ * object about module scope operation
+ */
+model GetScopesObject {
+  scope: string(description='scope keyword', name='scope')
+}
+
+/**
+ * object about module scope operation
+ */
+model GetScopeModulesObject {
+  scope: string(description='scope', name='scope'),
+  name: string(description='module name keyword', name='name'),
+}
+
+/**
+ * object about module version operation
+ */
+model GetModuleVersionsObject {
+  scope: string(description='scope', name='scope'),
+  name: string(description='module name', name='name'),
+}
+
+/**
+ * object about module scope operation
+ */
+model LoginResultObject {
+  ok: boolean(description='request status', name='ok'),
+  rev: string(description='user token', name='rev')
+}
+
+model Config {
+  endpoint: string,
+  protocol: string,
+  auth: string
+}
+
+/**
+ * object about module scope operation
+ */
+model ScopeObject {
+  scope: string
+}
+
+/**
+ * object about scope maintainer operation
+ */
+model ScopeMaintainerObject {
+  username: string(description='username', name='username'),
+  scope: string(description='scope', name='scope')
+}
+
+/**
+ * init the client
+ * @param config Config of the config
+ */
+init(config: Config) {
+  @endpoint_host = config.endpoint;
+  @auth = config.auth;
+  @protocol = config.protocol;
+}
+
+/**
+ * the handler use to deal with the response
+ * @param reponse response from tea repository server
+ * @return result result of the server
+ */
+async function _handle(response: $Response): object {
+  var result = Util.assertAsMap(Util.readAsJSON(response.body));
+
+  if (!Util.equalNumber(response.statusCode, 200)) {
+    throw {
+      message = `code: ${response.statusCode}, ${result.code} reason: ${result.message}`,
+      code = `${result.code}`
+    };
+  }
+
+  if (!Util.assertAsBoolean(result.ok)) {
+    throw {
+      message = `code: ${result.status}, ${result.code} reason: ${result.message}`,
+      code = `${result.code}`
+    };
+  }
+  return result;
+}
+
+/**
+ * the api use to deal with get request
+ * @param pathname pathname of the get api
+ * @param query the model of query params 
+ * @return result result of the server
+ */
+api _get(pathname: string, query: $Model): object {
+  __request.protocol = @protocol;
+  __request.method = 'GET';
+  __request.pathname = pathname;
+  __request.headers = {
+    host = @endpoint_host,
+    accept = 'application/json',
+    authorization = @auth
+  };
+  __request.query = Util.stringifyMapValue(query);
+} returns {
+  // return result
+  return _handle(__response);
+} runtime {
+  timeouted = 'retry'
+}
+
+/**
+ * the api use to deal with post request
+ * @param pathname pathname of the post api
+ * @param body the model of body params 
+ * @return result result of the server
+ */
+api _post(pathname: string, body: $Model): object {
+  __request.protocol = @protocol;
+  __request.method = 'POST';
+  __request.pathname = pathname;
+  __request.headers = {
+    host = @endpoint_host,
+    accept = 'application/json',
+    content-type = 'application/json; charset=utf-8'
+  };
+
+  if (@auth) {
+    __request.headers.authorization = @auth;
+  }
+  __request.body = Util.toJSONString(body);
+} returns {
+  return _handle(__response);
+} runtime {
+  timeouted = 'retry'
+}
+
+/**
+ * the api use to deal with put request
+ * @param pathname pathname of the put api
+ * @param body the model of body params 
+ * @return result result of the server
+ */
+api _put(pathname: string, body: $Model): object {
+  __request.protocol = @protocol;
+  __request.method = 'PUT';
+  __request.pathname = pathname;
+  __request.headers = {
+    host = @endpoint_host,
+    accept = 'application/json',
+    authorization = @auth,
+    content-type = 'application/json; charset=utf-8'
+  };
+  __request.body = Util.toJSONString(body);
+} returns {
+  return _handle(__response);
+} runtime {
+  timeouted = 'retry'
+}
+
+/**
+ * the api use to deal with delete request
+ * @param pathname pathname of the delete api
+ * @param query the model of query params 
+ * @return result result of the server
+ */
+api _delete(pathname: string, query: $Model): object {
+  __request.protocol = @protocol;
+  __request.method = 'DELETE';
+  __request.pathname = pathname;
+  __request.headers = {
+    host = @endpoint_host,
+    accept = 'application/json',
+    authorization = @auth
+  };
+  __request.query = Util.stringifyMapValue(query);
+} returns {
+  return _handle(__response);
+} runtime {
+  timeouted = 'retry'
+}
+
+/**
+ * user login function
+ * @param body UserObject for user login info 
+ * @return result result of the server
+ */
+async function userLogin(body: UserObject): LoginResultObject {
+  return _post(`/user/login`, body);
+}
+
+/**
+ * get scope info function
+ * @param query GetScopesObject for get scope info operation
+ * @return result result of the server
+ */
+async function getScopes(query: GetScopesObject): object {
+  return _get(`/scopes`, query);
+}
+
+/**
+ * get  modules of certain scope function
+ * @param query GetScopeModulesObject for get module list operation
+ * @return result result of the server
+ */
+async function getScopeModules(query: GetScopeModulesObject): object {
+  return _get(`/scope/modules`, query);
+}
+
+/**
+ * get versions of certain module function
+ * @param query GetModuleVersionsObject for get version list operation
+ * @return result result of the server
+ */
+async function getModuleVersions(query: GetModuleVersionsObject): object {
+  return _get(`/module/versions`, query);
+}
+
+/**
+ * get versions of certain module function
+ * @param query GetModuleVersionsObject for get version list operation
+ * @return result result of the server
+ */
+async function getModuleMaintainers(query: GetModuleObjectMaintainersObject): object {
+  return _get(`/module/maintainers`, query);
+}
+
+/**
+ * download module function
+ * @param query DownloadModuleObject for download module operation
+ * @return result result of the server
+ */
+async function downloadModule(query: DownloadModuleObject): object {
+  return _get(`/download/modules`, query);
+}
+
+/**
+ * publish module function
+ * @param from PublishModuleObject for publish module operation
+ * @return result result of the server
+ */
+api publishModule(form: PublishModuleObject): object {
+  var boundary = FileForm.getBoundary();
+  __request.protocol = @protocol;
+  __request.method = 'POST';
+  __request.pathname = `/publish/module`;
+  __request.headers = {
+    host = @endpoint_host,
+    content-type = `multipart/form-data; boundary=${boundary}`,
+    accept = 'application/json',
+    authorization = @auth
+  };
+  __request.body = FileForm.toFileForm(form, boundary);
+} returns {
+  return _handle(__response);
+} runtime {
+  timeouted = 'retry',
+  timeout = 60000
+}
+
+/**
+ * delete module function
+ * @param scope module scope info
+ * @param name module name info
+ * @return result result of the server
+ */
+async function deleteModule(scope: string, name: string): object {
+  return _delete(`/scope/${scope}/module/${name}`, null);
+}
+
+/**
+ * get module info function
+ * @param scope module scope info
+ * @return result result of the server
+ */
+async function getScopeInfo(scope: string): object {
+  return _get(`/scope/${scope}`, null);
+}
+
+/**
+ * get module info function
+ * @param scope module scope info
+ * @param name module name info
+ * @param name module version info
+ * @return result result of the server
+ */
+async function getModuleInfo(scope: string, name: string, version: string): object {
+  return _get(`/scope/${scope}/module/${name}/version/${version}`, null);
+}
+
+/**
+ * delete module info function
+ * @param scope module scope info
+ * @param name module name info
+ * @param version module version info
+ * @return result result of the server
+ */
+async function deleteModuleVersion(scope: string, name: string, version: string): object {
+  return _delete(`/scope/${scope}/module/${name}/version/${version}`, null);
+}
