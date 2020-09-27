@@ -150,7 +150,8 @@ api _get(pathname: string, query: $Model): object {
   // return result
   return _handle(__response);
 } runtime {
-  timeouted = 'retry'
+  timeouted = 'retry',
+  timeout = 15000
 }
 
 /**
