@@ -318,7 +318,7 @@ export default class Client {
   async _get(pathname: string, query: $tea.Model): Promise<{[key: string]: any}> {
     let _runtime: { [key: string]: any } = {
       timeouted: "retry",
-      timeout: 15000,
+      timeout: 60000,
     }
 
     let _lastRequest = null;
